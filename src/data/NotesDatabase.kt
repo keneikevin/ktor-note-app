@@ -2,6 +2,7 @@ package com.kenei.data
 
 import com.kenei.data.collections.Note
 import com.kenei.data.collections.User
+import com.kenei.security.checkHashForPassword
 import org.litote.kmongo.contains
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.eq
@@ -10,7 +11,7 @@ import org.litote.kmongo.setValue
 
 
 private val client = KMongo.createClient().coroutine
-private val database = client.getDatabase("NotesDatabase")
+private val database = client.getDatabase("NewYearDb")
 private val users = database.getCollection<User>()
 private val notes = database.getCollection<Note>()
 
@@ -23,8 +24,10 @@ suspend fun checkIfUserExists(email:String):Boolean{
 }
 suspend fun checkPasswordForEmail(email: String, passwordToCheck: String):Boolean{
     val actualPassword = users.findOne(User::email eq email)?.password?: return false
-    return actualPassword == passwordToCheck
+    return checkHashForPassword(passwordToCheck,actualPassword)
 }
+
+
 suspend fun getNotesFromUser(email: String): List<Note>{
     return notes.find(Note::owners contains email).toList()
 }
@@ -36,14 +39,20 @@ suspend fun saveNote(note: Note): Boolean{
         notes.insertOne(note).wasAcknowledged()
     }
 }
+
+
 suspend fun isOwnerOfNote(noteId: String, owner:String):Boolean{
     val note = notes.findOneById(noteId)?:return false
     return owner in note.owners
 }
-suspend fun addOwnerToNote(noteId: String, OWNER:String):Boolean{
+suspend fun addOwnerToNote(noteId: String, owner: String):Boolean{
     val owners = notes.findOneById(noteId)?.owners ?:return false
-    return notes.updateOneById(noteId, setValue(Note::owners, owners+owners)).wasAcknowledged()
+    return notes.updateOneById(noteId, setValue(Note::owners, owners+owner)).wasAcknowledged()
 }
+
+
+
+
 suspend fun deleteNoteForUser(email: String, noteId:String):Boolean {
     val note = notes.findOne(Note::id eq noteId, Note::owners contains email)
     note?.let { note ->

@@ -5,6 +5,7 @@ import com.kenei.data.collections.User
 import com.kenei.data.registerUser
 import com.kenei.data.request.AccountRequest
 import com.kenei.data.resposes.SimpleResponse
+import com.kenei.security.getHashWithSalt
 import io.ktor.application.*
 import io.ktor.features.*
 import io.ktor.features.ContentTransformationException
@@ -26,7 +27,7 @@ fun Route.registerRoute(){
         }
             val userExists = checkIfUserExists(request.email)
             if (!userExists){
-                if (registerUser(User(request.email,request.password))){
+                if (registerUser(User(request.email,getHashWithSalt(request.password)))){
                     call.respond(OK, SimpleResponse(true,"Successfully created account!"))
                 } else{
                     call.respond(OK, SimpleResponse(false,"an unknown error occurred"))
